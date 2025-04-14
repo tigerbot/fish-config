@@ -3,10 +3,15 @@ function setup-env --on-variable PWD
         source_env .env
     end
 
-    if test -r .venv/bin/activate.fish
+    for dir_name in .venv venv
+        if ! test -r $dir_name/bin/activate.fish
+            continue
+        end
+
         if type -q deactivate
             deactivate
         end
-        source .venv/bin/activate.fish
+        source $dir_name/bin/activate.fish
+        break
     end
 end
