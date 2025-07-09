@@ -10,13 +10,20 @@ function source_env
         # echo "[line=$line,split_line=$split_line,name=$name,raw_val=$raw_val]"
 
         # Unquote values and handle any environment replacements
-        if string match -q '"*"' $raw_val; or string match -q "'*'" $raw_val
-            set raw_val (string sub -s 2 -e -1 $raw_val)
+        set -l value $raw_val
+        if string match -q '"*"' $value; or string match -q "'*'" $value
+            set value (string unescape $value)
         end
-        if string match -qr '[$][{][A-Za-z_][A-Za-z_0-9]*[}]' $raw_val
-            set raw_val (string replace -ar '[$][{]([A-Za-z_][A-Za-z_0-9]*)[}]' '{$$$1}' $raw_val)
+
+        # If the value used single quotes, don't expand anything
+        if not string match -q "'*'" $raw_val
+            while string match -qr '\$\{?[A-Za-z_][A-Za-z_0-9]*\}?' $value
+                set -l env_ref  (string match -r '\$\{?[A-Za-z_][A-Za-z_0-9]*\}?' $value)
+                set -l env_name (string match -r '[A-Za-z_0-9]+' $env_ref)
+                set value (string replace $env_ref $$env_name $value)
+            end
         end
-        set -l value (eval "echo $raw_val")
+
         # echo "[name=$name; value=$value; raw_val=$raw_val]"
         set -gx $name $value
     end
